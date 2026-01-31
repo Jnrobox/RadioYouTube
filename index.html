@@ -63,7 +63,7 @@
         var vizInterval;
 
         // Fetch stations and then start
-        fetch('stations.json')
+        fetch('/stations.json')
             .then(res => res.json())
             .then(data => {
                 stations = data.map(url => extractId(url)).filter(id => id);
