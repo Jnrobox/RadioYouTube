@@ -56,53 +56,74 @@
     </div>
 
     <script>
+
         var player;
         var stations = [];
         var currentIndex = 0;
         var isPlaying = false;
         var vizInterval;
-
-        // Fetch stations and then start
-        fetch('stations.json')
-            .then(res => res.json())
+        
+        fetch('./stations.json') 
+            .then(res => {
+                if (!res.ok) throw new Error("Could not find stations.json");
+                return res.json();
+            })
             .then(data => {
                 stations = data.map(url => extractId(url)).filter(id => id);
-                initYT();
+                if (stations.length > 0) {
+                    initYT();
+                } else {
+                    document.getElementById('track-title').innerText = "JSON is empty!";
+                }
+            })
+            .catch(err => {
+                document.getElementById('track-title').innerText = "Error loading stations.json";
+                console.error(err);
             });
-
+        
         function extractId(url) {
             const match = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/user\/\S+|\/ytscreeningroom\?v=))([\w\-]{11})/);
             return (match && match[1]) ? match[1] : null;
         }
-
+        
         function initYT() {
             var tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
-            document.head.appendChild(tag);
+            var firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         }
-
+        
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '0', width: '0',
                 videoId: stations[currentIndex],
+                playerVars: { 'autoplay': 0, 'controls': 0 },
                 events: {
+                    'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange,
-                    'onError': () => playNext() // Skip broken links
+                    'onError': () => playNext()
                 }
             });
         }
-
+        
+        function onPlayerReady() {
+            document.getElementById('track-title').innerText = "Ready to Play";
+        }
+        
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.PLAYING) {
-                document.getElementById('track-title').innerText = player.getVideoData().title;
+                const title = player.getVideoData().title;
+                document.getElementById('track-title').innerText = title || "Streaming...";
                 setPlayState(true);
             } else if (event.data == YT.PlayerState.ENDED) {
                 playNext();
+            } else if (event.data == YT.PlayerState.BUFFERING) {
+                document.getElementById('track-title').innerText = "Buffering...";
             } else {
                 setPlayState(false);
             }
         }
-
+        
         function setPlayState(playing) {
             isPlaying = playing;
             const btn = document.getElementById('play-icon');
@@ -114,36 +135,41 @@
                 stopViz();
             }
         }
-
+        
         function togglePlay() {
+            if (!player) return;
             if (isPlaying) player.pauseVideo();
             else player.playVideo();
         }
-
+        
         function playNext() {
+            if (stations.length === 0) return;
             currentIndex = (currentIndex + 1) % stations.length;
             player.loadVideoById(stations[currentIndex]);
         }
-
+        
         function playPrev() {
+            if (stations.length === 0) return;
             currentIndex = (currentIndex - 1 + stations.length) % stations.length;
             player.loadVideoById(stations[currentIndex]);
         }
-
-        function changeVolume(v) { player.setVolume(v); }
-
+        
+        function changeVolume(v) { if(player) player.setVolume(v); }
+        
         function startViz() {
+            if (vizInterval) clearInterval(vizInterval);
             vizInterval = setInterval(() => {
                 document.querySelectorAll('.bar').forEach(bar => {
                     bar.style.height = Math.floor(Math.random() * 50 + 10) + 'px';
                 });
             }, 150);
         }
-
+        
         function stopViz() {
             clearInterval(vizInterval);
             document.querySelectorAll('.bar').forEach(bar => bar.style.height = '10px');
         }
+        
     </script>
 </body>
 </html>
