@@ -133,7 +133,7 @@
                 window.addEventListener('click', handleFirstInteraction, { once: true });
             } else {
                 player.cuePlaylist({ listType: 'playlist', list: PLAYLIST_ID });
-                if (!isMobile) {
+                if (isMobile) {
                     titleEl.innerText = "Ready to play (please, use browser Request Desktop Site option)";
                 }
                 else {
