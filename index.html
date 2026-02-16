@@ -4,7 +4,7 @@
     <script>
         // For local debug use: python3 -m http.server 8000 (http://localhost:8000)
         const AppTitleStr = "Jnrobox Radio YouTube";
-        const AppVersionStr = "20260204";
+        const AppVersionStr = "20260216";
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,9 +37,9 @@
             <div id="visualizer" class="flex justify-center items-end space-x-1 h-8 mb-4">
                 <div class="bar bg-cyan-500 h-2"></div><div class="bar bg-blue-500 h-2"></div><div class="bar bg-indigo-500 h-2"></div><div class="bar bg-purple-500 h-2"></div><div class="bar bg-pink-500 h-2"></div>
             </div>
-            <div class="flex justify-center mb-2">
+            <!--div class="flex justify-center mb-2">
                 <span class="text-[7px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-bold tracking-widest border border-cyan-500/30">DATA SAVER ACTIVE</span>
-            </div>
+            </div-->
             <h1 id="info-tag" class="text-[9px] font-black tracking-[0.3em] text-gray-500 uppercase mb-2">Player info</h1>
             <div class="h-8 marquee-container flex items-center mb-4">
                 <p id="track-title" class="marquee text-md font-bold text-white tracking-tight">Player is ready</p>
@@ -72,8 +72,26 @@
         <div class="flex-grow overflow-hidden flex flex-col">
             <div class="flex justify-between items-center mb-3 px-2">
                 <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Station Feed</h2>
+                <h2 id="manage-playlists-btn" onclick="togglePlaylistManager()" class="text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-cyan-400 transition" title="Manage Playlists">PLAYLISTS</h2>
             </div>
             <div id="playlist-container" class="flex-grow overflow-y-auto custom-scroll space-y-2 pr-2"></div>
+        </div>
+        
+        <!-- Playlist Manager Modal -->
+        <div id="playlist-manager" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="glass p-6 rounded-2xl w-72 max-h-[500px] flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-white">Saved Playlists</h3>
+                    <button onclick="togglePlaylistManager()" class="text-gray-400 hover:text-white">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </button>
+                </div>
+                <div id="saved-playlists-list" class="flex-grow overflow-y-auto custom-scroll space-y-2 mb-4"></div>
+                <button onclick="addNewPlaylist()" class="w-full py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition flex items-center justify-center gap-2">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Add New Playlist
+                </button>
+            </div>
         </div>
         <div id="player"></div>
     </div>
@@ -89,7 +107,9 @@
         infoEl.innerText = AppTitleStr + '\nver. ' + AppVersionStr;
         //infoEl.classList.add('pulse-text');
         
-        const PLAYLIST_ID = 'PL01N4uJROxb9EpAmC4yrRug0Mv9TIpu84'; 
+        // Default playlist ID (used if none saved in localStorage)
+        const DEFAULT_PLAYLIST_ID = 'PL01N4uJROxb9EpAmC4yrRug0Mv9TIpu84';
+        let PLAYLIST_ID = localStorage.getItem('radio_playlist_id') || DEFAULT_PLAYLIST_ID;
         let player, isPlaying = false, isShuffled = localStorage.getItem('radio_shuffle') === 'true';
         let vizInterval, progressInterval, needsResume = false;
 
@@ -258,7 +278,103 @@
         function playPrev() { needsResume = false; player.previousVideo(); }
         function seek(val) { if(player.getDuration) player.seekTo((val / 100) * player.getDuration(), true); }
         function changeVolume(v) { if(player) player.setVolume(v); localStorage.setItem('radio_volume', v); }
-        function resetAll() { localStorage.clear(); location.reload(); }
+        function resetAll() {
+            localStorage.clear();
+            location.reload();
+        }
+        
+        // Playlist Management Functions
+        function getSavedPlaylists() {
+            return JSON.parse(localStorage.getItem('radio_saved_playlists')) || [];
+        }
+        
+        function savePlaylistToList(playlistId, name = null) {
+            const playlists = getSavedPlaylists();
+            const existingIndex = playlists.findIndex(p => p.id === playlistId);
+            
+            if (existingIndex === -1) {
+                // Add new playlist
+                playlists.push({
+                    id: playlistId,
+                    name: name || playlistId.substring(0, 15) + '...',
+                    addedAt: Date.now()
+                });
+                localStorage.setItem('radio_saved_playlists', JSON.stringify(playlists));
+            }
+        }
+        
+        function deletePlaylistFromList(playlistId) {
+            let playlists = getSavedPlaylists();
+            playlists = playlists.filter(p => p.id !== playlistId);
+            localStorage.setItem('radio_saved_playlists', JSON.stringify(playlists));
+            renderSavedPlaylists();
+        }
+        
+        function extractPlaylistId(input) {
+            let playlistId = input.trim();
+            const listMatch = input.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+            if (listMatch) {
+                playlistId = listMatch[1];
+            }
+            return playlistId;
+        }
+        
+        function switchToPlaylist(playlistId) {
+            localStorage.setItem('radio_playlist_id', playlistId);
+            // Clear position cache when switching
+            localStorage.removeItem('radio_last_pos');
+            location.reload();
+        }
+        
+        function togglePlaylistManager() {
+            const modal = document.getElementById('playlist-manager');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                renderSavedPlaylists();
+            }
+        }
+        
+        function renderSavedPlaylists() {
+            const container = document.getElementById('saved-playlists-list');
+            const playlists = getSavedPlaylists();
+            const currentId = localStorage.getItem('radio_playlist_id') || DEFAULT_PLAYLIST_ID;
+            
+            if (playlists.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">No saved playlists yet</p>';
+                return;
+            }
+            
+            container.innerHTML = playlists.map(p => `
+                <div class="flex items-center justify-between p-2 rounded-lg ${p.id === currentId ? 'bg-cyan-500/20 border border-cyan-500/30' : 'bg-white/5'} group">
+                    <button onclick="switchToPlaylist('${p.id}')" class="flex-grow text-left">
+                        <p class="text-xs ${p.id === currentId ? 'text-cyan-400' : 'text-gray-300'} truncate">${p.name}</p>
+                        <p class="text-[9px] text-gray-500 font-mono truncate">${p.id}</p>
+                    </button>
+                    <button onclick="deletePlaylistFromList('${p.id}')" class="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-1">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        function addNewPlaylist() {
+            const input = prompt('Enter YouTube playlist link or ID:');
+            if (input) {
+                const playlistId = extractPlaylistId(input);
+                const name = prompt('Enter a name for this playlist:', playlistId.substring(0, 15));
+                savePlaylistToList(playlistId, name);
+                renderSavedPlaylists();
+            }
+        }
+        
+        // Initialize: ensure current playlist is in the saved list
+        (function initPlaylist() {
+            const currentId = localStorage.getItem('radio_playlist_id') || DEFAULT_PLAYLIST_ID;
+            if (currentId === DEFAULT_PLAYLIST_ID)
+                savePlaylistToList(currentId, 'Default Playlist');
+            else
+                savePlaylistToList(currentId, currentId.substring(0, 15) + '...');
+        })();
     </script>
 </body>
 </html>
