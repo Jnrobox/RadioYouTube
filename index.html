@@ -4,11 +4,12 @@
     <script>
         // For local debug use: python3 -m http.server 8000 (http://localhost:8000)
         const AppTitleStr = "Jnrobox Radio YouTube";
-        const AppVersionStr = "20260216";
+        const AppVersionStr = "20260219";
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jnrobox Radio YouTube</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -104,13 +105,15 @@
         console.log('DEBUG: site mobile mode =', isMobile);
 
         const infoEl = document.getElementById('info-tag');
-        infoEl.innerText = AppTitleStr + '\nver. ' + AppVersionStr;
+        //infoEl.innerText = AppTitleStr + '\nver. ' + AppVersionStr;
+        infoEl.innerHTML = `${AppTitleStr}<br><span style="color: #555;">ver. ${AppVersionStr}</span>`;
         //infoEl.classList.add('pulse-text');
         
         // Default playlist ID (used if none saved in localStorage)
         const DEFAULT_PLAYLIST_ID = 'PL01N4uJROxb9EpAmC4yrRug0Mv9TIpu84';
         let PLAYLIST_ID = localStorage.getItem('radio_playlist_id') || DEFAULT_PLAYLIST_ID;
-        let player, isPlaying = false, isShuffled = localStorage.getItem('radio_shuffle') === 'true';
+        let player, isPlaying = false
+        let isShuffled = localStorage.getItem('radio_shuffle') || false;
         let vizInterval, progressInterval, needsResume = false;
 
         let trackCache = JSON.parse(localStorage.getItem('radio_titles')) || {};
@@ -154,7 +157,7 @@
             } else {
                 player.cuePlaylist({ listType: 'playlist', list: PLAYLIST_ID });
                 if (isMobile) {
-                    titleEl.innerText = "Ready to play (please, use browser Request Desktop Site option)";
+                    titleEl.innerText = "Ready to play, resume from the lock screen";
                 }
                 else {
                     titleEl.innerText = "Ready to play";
@@ -174,7 +177,6 @@
                 if (event.target.setPlaybackQuality) {
                     event.target.setPlaybackQuality('small');
                 }
-
                 setPlayState(true);
                 if (needsResume && lastPos) {
                     player.seekTo(lastPos.time, true);
@@ -197,7 +199,7 @@
         function toggleShuffle() {
             isShuffled = !isShuffled;
             localStorage.setItem('radio_shuffle', isShuffled);
-            if(player) {
+            if (player) {
                 player.setShuffle(isShuffled);
                 player.playVideoAt(player.getPlaylistIndex());
             }
@@ -277,7 +279,14 @@
         function playNext() { needsResume = false; player.nextVideo(); }
         function playPrev() { needsResume = false; player.previousVideo(); }
         function seek(val) { if(player.getDuration) player.seekTo((val / 100) * player.getDuration(), true); }
-        function changeVolume(v) { if(player) player.setVolume(v); localStorage.setItem('radio_volume', v); }
+
+        function changeVolume(v) { 
+            if (player) {
+                player.setVolume(v); 
+                localStorage.setItem('radio_volume', v);
+            }
+        }
+
         function resetAll() {
             localStorage.clear();
             location.reload();
