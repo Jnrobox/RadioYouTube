@@ -4,7 +4,7 @@
     <script>
         // For local debug use: python3 -m http.server 8000 (http://localhost:8000)
         const AppTitleStr = "Jnrobox Radio YouTube";
-        const AppVersionStr = "20260219";
+        const AppVersionStr = "20260220";
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,8 +25,8 @@
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
         .playlist-item.active { color: #22d3ee; background: rgba(34, 211, 238, 0.1); border-left: 3px solid #22d3ee; }
-        input[type=range] { -webkit-appearance: none; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: #94a3b8; cursor: pointer; margin-top: -4px; }
+        input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; height: 12px; width: 12px; border-radius: 50%; background: #94a3b8; cursor: pointer; margin-top: -4px; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #1e293b; border-radius: 2px; }
         .btn-active { color: #22d3ee; filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.6)); }
     </style>
@@ -41,7 +41,7 @@
             <!--div class="flex justify-center mb-2">
                 <span class="text-[7px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-bold tracking-widest border border-cyan-500/30">DATA SAVER ACTIVE</span>
             </div-->
-            <h1 id="info-tag" class="text-[9px] font-black tracking-[0.3em] text-gray-500 uppercase mb-2">Player info</h1>
+            <h1 id="info-tag" class="text-[10px] font-black tracking-[0.3em] text-gray-500 uppercase mb-2">Player info</h1>
             <div class="h-8 marquee-container flex items-center mb-4">
                 <p id="track-title" class="marquee text-md font-bold text-white tracking-tight">Player is ready</p>
             </div>
@@ -62,7 +62,7 @@
             <button onclick="playPrev()" class="text-gray-400 hover:text-white transition active:scale-90"><svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18V6h2v12H6zm3.5-6L18 18V6l-8.5 6z"/></svg></button>
             <button onclick="togglePlay()" id="play-btn" class="bg-white text-black p-4 rounded-full hover:scale-110 transition active:scale-95 shadow-lg"><svg id="play-icon" width="32" height="32" fill="currentColor" viewBox="0 0 24 24"><path id="icon-path" d="M8 5v14l11-7z"/></svg></button>
             <button onclick="playNext()" class="text-gray-400 hover:text-white transition active:scale-90"><svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
-            <button onclick="resetAll()" class="text-gray-400 hover:text-white transition active:scale-90" title="Reset All"><svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8c3.31 0 6.14-2.04 7.29-4.84h-2.3c-.93 1.71-2.81 2.84-4.99 2.84-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.67 4.22 1.78l-2.58 2.58H19V6.35z"/></svg></button>
+            <button onclick="resetAll()" class="text-gray-400 hover:text-white transition active:scale-90" title="Reset All"><svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
         </div>
 
         <div class="flex items-center space-x-3 px-4 mb-8">
@@ -72,7 +72,7 @@
 
         <div class="flex-grow overflow-hidden flex flex-col">
             <div class="flex justify-between items-center mb-3 px-2">
-                <h2 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Station Feed</h2>
+                <h2 class="text-[12px] font-bold text-gray-500 uppercase tracking-widest">Play Queue</h2>
                 <h2 id="manage-playlists-btn" onclick="togglePlaylistManager()" class="text-[12px] font-bold text-gray-500 uppercase tracking-widest cursor-pointer hover:text-cyan-400 transition" title="Manage Playlists">PLAYLISTS</h2>
             </div>
             <div id="playlist-container" class="flex-grow overflow-y-auto custom-scroll space-y-2 pr-2"></div>
@@ -288,8 +288,10 @@
         }
 
         function resetAll() {
-            localStorage.clear();
-            location.reload();
+            if (confirm('Are you sure to reset all?')) {
+                localStorage.clear();
+                location.reload();
+            }
         }
         
         // Playlist Management Functions
