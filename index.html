@@ -4,7 +4,7 @@
     <script>
         // For local debug use: python3 -m http.server 8000 (http://localhost:8000)
         const AppTitleStr = "Jnrobox Radio YouTube";
-        const AppVersionStr = "20260220";
+        const AppVersionStr = "20260223-dbg";
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,6 +34,7 @@
 <body class="flex items-center justify-center min-h-screen">
 
     <div class="glass p-8 rounded-[2.5rem] w-80 shadow-2xl border border-white/10 flex flex-col h-[650px]">
+        <button onclick="confirm('Test')">Click</button>
         <div class="text-center">
             <div id="visualizer" class="flex justify-center items-end space-x-1 h-8 mb-4">
                 <div class="bar bg-cyan-500 h-2"></div><div class="bar bg-blue-500 h-2"></div><div class="bar bg-indigo-500 h-2"></div><div class="bar bg-purple-500 h-2"></div><div class="bar bg-pink-500 h-2"></div>
