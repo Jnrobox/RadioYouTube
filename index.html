@@ -4,12 +4,12 @@
     <script>
         // For local debug use: python3 -m http.server 8000 (http://localhost:8000)
         const AppTitleStr = "Jnrobox Radio YouTube";
-        const AppVersionStr = "20260223";
+        const AppVersionStr = "2026-02-23";
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jnrobox Radio YouTube</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -35,9 +35,6 @@
 
     <div class="glass p-8 rounded-[2.5rem] w-80 shadow-2xl border border-white/10 flex flex-col h-[650px]">
         <div class="text-center">
-            
-            <!--button onclick="test('Test msg here')" id="test-btn">TEST</button-->
-
             <div id="visualizer" class="flex justify-center items-end space-x-1 h-8 mb-4">
                 <div class="bar bg-cyan-500 h-2"></div><div class="bar bg-blue-500 h-2"></div><div class="bar bg-indigo-500 h-2"></div><div class="bar bg-purple-500 h-2"></div><div class="bar bg-pink-500 h-2"></div>
             </div>
@@ -116,7 +113,7 @@
         const DEFAULT_PLAYLIST_ID = 'PL01N4uJROxb9EpAmC4yrRug0Mv9TIpu84';
         let PLAYLIST_ID = localStorage.getItem('radio_playlist_id') || DEFAULT_PLAYLIST_ID;
         let player, isPlaying = false
-        let isShuffled = localStorage.getItem('radio_shuffle') || false;
+        let isShuffled = localStorage.getItem('radio_shuffle') === 'true';
         let vizInterval, progressInterval, needsResume = false;
 
         let trackCache = JSON.parse(localStorage.getItem('radio_titles')) || {};
@@ -172,19 +169,25 @@
         function handleFirstInteraction() {
             document.getElementById('track-title').classList.remove('pulse-text');
             player.playVideo();
+            // Seek immediately after play to avoid race condition
+            if (lastPos && lastPos.time > 0) {
+                player.seekTo(lastPos.time, true);
+            }
+            needsResume = false;
         }
 
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.PLAYING) {
-                // FORCE LOW BITRATE (144p)
-                if (event.target.setPlaybackQuality) {
+                // Suggest low bitrate for data saving (hint only, YouTube may override)
+                if (event.target.setPlaybackQualityHint) {
+                    event.target.setPlaybackQualityHint('small');
+                    console.log('DEBUG: requesting data saver mode (quality small/hint)');
+                }
+                else if (event.target.setPlaybackQuality) {
                     event.target.setPlaybackQuality('small');
+                    console.log('DEBUG: requesting data saver mode (quality small)');
                 }
                 setPlayState(true);
-                if (needsResume && lastPos) {
-                    player.seekTo(lastPos.time, true);
-                    needsResume = false; 
-                }
                 const data = player.getVideoData();
                 if (data.video_id) {
                     trackCache[data.video_id] = data.title;
@@ -320,7 +323,7 @@
                 d.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50';
                 d.innerHTML = '<div class="glass p-6 rounded-2xl w-72 flex flex-col items-center">' +
                             '<p class="text-sm font-bold text-white mb-4 text-center">' + msg + '</p>' +
-                            '<input id="prompt-input" type="text" value="' + defaultValue.replace(/"/g, '"') + '" class="w-full px-3 py-2 mb-4 bg-white/10 text-white text-sm rounded-lg border border-white/10 focus:border-cyan-500 focus:outline-none">' +
+                            '<input id="prompt-input" type="text" value="' + defaultValue.replace(/"/g, '&quot;') + '" class="w-full px-3 py-2 mb-4 bg-white/10 text-white text-sm rounded-lg border border-white/10 focus:border-cyan-500 focus:outline-none">' +
                             '<div class="flex gap-3">' +
                             '<button id=y class="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition">OK</button>' +
                             '<button id=n class="px-4 py-2 bg-white/10 text-gray-400 rounded-lg text-xs font-bold hover:bg-white/20 transition">Cancel</button>' +
@@ -333,13 +336,6 @@
                 d.querySelector('#n').onclick=()=>{d.remove(); res(null)};
                 input.onkeydown=(e)=>{if(e.key==='Enter'){d.remove();res(input.value)}if(e.key==='Escape'){d.remove();res(null)}};
             });
-        }
-
-        async function test(message){
-            //let res = await confirmPromise(message);
-            //document.getElementById('test-btn').innerText = 'TEST: ' + res;
-            //let res = await promptPromise(message);
-            //document.getElementById('test-btn').innerText = 'TEST: ' + res;
         }
 
         // Playlist Management Functions
