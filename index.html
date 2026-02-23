@@ -4,7 +4,7 @@
     <script>
         // For local debug use: python3 -m http.server 8000 (http://localhost:8000)
         const AppTitleStr = "Jnrobox Radio YouTube";
-        const AppVersionStr = "20260223-dbg";
+        const AppVersionStr = "20260223";
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,8 +34,10 @@
 <body class="flex items-center justify-center min-h-screen">
 
     <div class="glass p-8 rounded-[2.5rem] w-80 shadow-2xl border border-white/10 flex flex-col h-[650px]">
-        <button onclick="confirm('Test')">Click</button>
         <div class="text-center">
+            
+            <!--button onclick="test('Test msg here')" id="test-btn">TEST</button-->
+
             <div id="visualizer" class="flex justify-center items-end space-x-1 h-8 mb-4">
                 <div class="bar bg-cyan-500 h-2"></div><div class="bar bg-blue-500 h-2"></div><div class="bar bg-indigo-500 h-2"></div><div class="bar bg-purple-500 h-2"></div><div class="bar bg-pink-500 h-2"></div>
             </div>
@@ -288,13 +290,58 @@
             }
         }
 
-        function resetAll() {
-            if (confirm('Are you sure to reset all?')) {
+        async function resetAll() {
+            let res = await confirmPromise('Are you sure to reset all?'); 
+            if (res) {
                 localStorage.clear();
                 location.reload();
             }
         }
-        
+
+        function confirmPromise(msg){
+            return new Promise(res => {
+                let d = document.createElement('div');
+                d.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50';
+                d.innerHTML = '<div class="glass p-6 rounded-2xl w-72 flex flex-col items-center">' +
+                            '<p class="text-sm font-bold text-white mb-4 text-center">' + msg + '</p>' +
+                            '<div class="flex gap-3">' +
+                            '<button id=y class="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition">OK</button>' +
+                            '<button id=n class="px-4 py-2 bg-white/10 text-gray-400 rounded-lg text-xs font-bold hover:bg-white/20 transition">Cancel</button>' +
+                            '</div></div>';
+                document.body.appendChild(d);
+                d.querySelector('#y').onclick=()=>{d.remove(); res(true)};
+                d.querySelector('#n').onclick=()=>{d.remove(); res(false)};
+            });
+        }
+
+        function promptPromise(msg, defaultValue = ''){
+            return new Promise(res => {
+                let d = document.createElement('div');
+                d.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50';
+                d.innerHTML = '<div class="glass p-6 rounded-2xl w-72 flex flex-col items-center">' +
+                            '<p class="text-sm font-bold text-white mb-4 text-center">' + msg + '</p>' +
+                            '<input id="prompt-input" type="text" value="' + defaultValue.replace(/"/g, '"') + '" class="w-full px-3 py-2 mb-4 bg-white/10 text-white text-sm rounded-lg border border-white/10 focus:border-cyan-500 focus:outline-none">' +
+                            '<div class="flex gap-3">' +
+                            '<button id=y class="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition">OK</button>' +
+                            '<button id=n class="px-4 py-2 bg-white/10 text-gray-400 rounded-lg text-xs font-bold hover:bg-white/20 transition">Cancel</button>' +
+                            '</div></div>';
+                document.body.appendChild(d);
+                let input = d.querySelector('#prompt-input');
+                input.focus();
+                input.select();
+                d.querySelector('#y').onclick=()=>{d.remove(); res(input.value)};
+                d.querySelector('#n').onclick=()=>{d.remove(); res(null)};
+                input.onkeydown=(e)=>{if(e.key==='Enter'){d.remove();res(input.value)}if(e.key==='Escape'){d.remove();res(null)}};
+            });
+        }
+
+        async function test(message){
+            //let res = await confirmPromise(message);
+            //document.getElementById('test-btn').innerText = 'TEST: ' + res;
+            //let res = await promptPromise(message);
+            //document.getElementById('test-btn').innerText = 'TEST: ' + res;
+        }
+
         // Playlist Management Functions
         function getSavedPlaylists() {
             return JSON.parse(localStorage.getItem('radio_saved_playlists')) || [];
@@ -369,13 +416,15 @@
             `).join('');
         }
         
-        function addNewPlaylist() {
-            const input = prompt('Enter YouTube playlist link or ID:');
+        async function addNewPlaylist() {
+            const input = await promptPromise('Enter YouTube playlist link or ID:');
             if (input) {
                 const playlistId = extractPlaylistId(input);
-                const name = prompt('Enter a name for this playlist:', playlistId.substring(0, 15));
-                savePlaylistToList(playlistId, name);
-                renderSavedPlaylists();
+                const name = await promptPromise('Enter a name for this playlist:', playlistId.substring(0, 15));
+                if (name !== null) {
+                    savePlaylistToList(playlistId, name);
+                    renderSavedPlaylists();
+                }
             }
         }
         
